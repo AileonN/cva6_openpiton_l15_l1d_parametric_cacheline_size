@@ -145,6 +145,8 @@ module csr_regfile import ariane_pkg::*; #(
 
     assign pmpcfg_o = pmpcfg_q[15:0];
     assign pmpaddr_o = pmpaddr_q;
+    //to_host
+    logic [63:0] to_host_q, to_host_d;
 
     riscv::fcsr_t fcsr_q, fcsr_d;
     // ----------------
@@ -402,8 +404,12 @@ module csr_regfile import ariane_pkg::*; #(
         en_ld_st_translation_d  = en_ld_st_translation_q;
         dirty_fp_state_csr      = 1'b0;
 
+<<<<<<< HEAD:core/csr_regfile.sv
         pmpcfg_d                = pmpcfg_q;
         pmpaddr_d               = pmpaddr_q;
+=======
+        to_host_d               = to_host_q;
+>>>>>>> Added feature: Parametric L15 & L1D cacheline design:src/csr_regfile.sv
 
         // check for correct access rights and that we are writing
         if (csr_we) begin
@@ -605,6 +611,7 @@ module csr_regfile import ariane_pkg::*; #(
                                         perf_we_o   = 1'b1;
                 end
 
+<<<<<<< HEAD:core/csr_regfile.sv
                 riscv::CSR_DCACHE:             dcache_d    = {{riscv::XLEN-1{1'b0}}, csr_wdata[0]}; // enable bit
                 riscv::CSR_ICACHE:             icache_d    = {{riscv::XLEN-1{1'b0}}, csr_wdata[0]}; // enable bit
                 // PMP locked logic
@@ -645,6 +652,13 @@ module csr_regfile import ariane_pkg::*; #(
                     if (!pmpcfg_q[index].locked && !(pmpcfg_q[index].locked && pmpcfg_q[index].addr_mode == riscv::TOR)) begin
                         pmpaddr_d[index] = csr_wdata[riscv::PLEN-3:0];
                     end
+=======
+                riscv::CSR_DCACHE:             dcache_d    = csr_wdata[0]; // enable bit
+                riscv::CSR_ICACHE:             icache_d    = csr_wdata[0]; // enable bit
+                riscv::TO_HOST: begin
+                                        //pcr_req_data_o = csr_wdata;
+                    to_host_d  = csr_wdata;
+>>>>>>> Added feature: Parametric L15 & L1D cacheline design:src/csr_regfile.sv
                 end
                 default: update_access_exception = 1'b1;
             endcase
@@ -1133,9 +1147,14 @@ module csr_regfile import ariane_pkg::*; #(
             en_ld_st_translation_q <= 1'b0;
             // wait for interrupt
             wfi_q                  <= 1'b0;
+<<<<<<< HEAD:core/csr_regfile.sv
             // pmp
             pmpcfg_q               <= '0;
             pmpaddr_q              <= '0;
+=======
+
+            to_host_q              <= 64'b0;
+>>>>>>> Added feature: Parametric L15 & L1D cacheline design:src/csr_regfile.sv
         end else begin
             priv_lvl_q             <= priv_lvl_d;
             // floating-point registers
@@ -1176,6 +1195,7 @@ module csr_regfile import ariane_pkg::*; #(
             en_ld_st_translation_q <= en_ld_st_translation_d;
             // wait for interrupt
             wfi_q                  <= wfi_d;
+<<<<<<< HEAD:core/csr_regfile.sv
             // pmp
             for(int i = 0; i < 16; i++) begin
                 if(i < NrPMPEntries) begin
@@ -1191,18 +1211,52 @@ module csr_regfile import ariane_pkg::*; #(
                     pmpaddr_q[i] <= '0;
                 end
             end
+=======
+
+            // to_host
+            to_host_q              <= to_host_d;
+
+>>>>>>> Added feature: Parametric L15 & L1D cacheline design:src/csr_regfile.sv
         end
     end
 
     //-------------
-    // Assertions
-    //-------------
-    //pragma translate_off
-    `ifndef VERILATOR
-        // check that eret and ex are never valid together
-        assert property (
-          @(posedge clk_i) !(eret_o && ex_i.valid))
-        else begin $error("eret and exception should never be valid at the same time"); $stop(); end
-    `endif
-    //pragma translate_on
+        // Assertions
+        //-------------
+        //pragma translate_off
+        `ifndef VERILATOR
+            // check that eret and ex are never valid together
+            assert property (
+            @(posedge clk_i) !(eret_o && ex_i.valid))
+            else begin $error("eret and exception should never be valid at the same time"); $stop(); end
+        `endif
+        //pragma translate_on
+
+        //pragma translate_off
+        `ifndef VERILATOR
+            // check that to_host has been written
+            assert property (
+                @(posedge clk_i) !(csr_we && (csr_addr.address == riscv::TO_HOST)))
+            else begin
+                if (to_host_q == {63'b0,1'b1}) begin
+                    $display("%0d: Simulation -> PASS (HIT GOOD TRAP)", $time);
+                end else begin
+                    $error("%0d: Simulation -> FAIL (HIT BAD TRAP)", $time);
+                end
+                $finish;
+            end
+        `else
+            always @(posedge clk_i) begin
+                if(csr_we && (csr_addr.address == riscv::TO_HOST)) begin
+                    if (to_host_d == {63'b0,1'b1}) begin  
+                        $display("%0d: Simulation -> PASS (HIT GOOD TRAP)", $time);
+                    end else begin
+                        $display("%0d: Simulation -> FAIL (HIT BAD TRAP)", $time);
+                    end
+                    $finish; 
+                end
+            end
+        `endif
+        //pragma translate_on
+
 endmodule
