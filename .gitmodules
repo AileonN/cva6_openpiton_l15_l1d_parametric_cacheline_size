@@ -37,9 +37,9 @@
 [submodule "verif/core-v-verif"]
 	path = verif/core-v-verif
 	url = https://github.com/openhwgroup/core-v-verif
-[submodule "core/cache_subsystem/hpdcache"]
-	path = core/cache_subsystem/hpdcache
-	url = https://github.com/openhwgroup/cv-hpdcache.git
 [submodule "verif/sim/dv"]
 	path = verif/sim/dv
 	url = https://github.com/google/riscv-dv.git
+[submodule "core/cache_subsystem/hpdcache"]
+	path = core/cache_subsystem/hpdcache
+	url = https://github.com/AileonN/cv-hpdcache_noliete.git
