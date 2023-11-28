@@ -292,7 +292,7 @@ module wt_l15_adapter
   end
 
   // openpiton is big endian
-  if (SwapEndianess) begin : gen_swap
+  if (CVA6Cfg.NOCType == config_pkg::NOC_TYPE_L15_BIG_ENDIAN) begin : gen_swap
     assign dcache_rtrn_o.data = {
       swendian64(rtrn_fifo_data.l15_data_1), swendian64(rtrn_fifo_data.l15_data_0)
     };
@@ -319,12 +319,12 @@ module wt_l15_adapter
   assign dcache_rtrn_o.tid     = rtrn_fifo_data.l15_threadid;
 
   // invalidation signal mapping
-  assign icache_rtrn_o.inv.idx = {rtrn_fifo_data.l15_inval_address_15_4, 4'b0000};
+  assign icache_rtrn_o.inv.idx = {rtrn_fifo_data.l15_inval_address[15:4], 4'b0000};
   assign icache_rtrn_o.inv.way = rtrn_fifo_data.l15_inval_way;
   assign icache_rtrn_o.inv.vld = rtrn_fifo_data.l15_inval_icache_inval;
   assign icache_rtrn_o.inv.all = rtrn_fifo_data.l15_inval_icache_all_way;
 
-  assign dcache_rtrn_o.inv.idx = {rtrn_fifo_data.l15_inval_address_15_4, 4'b0000};
+  assign dcache_rtrn_o.inv.idx = {rtrn_fifo_data.l15_inval_address[15:4], 4'b0000};
   assign dcache_rtrn_o.inv.way = rtrn_fifo_data.l15_inval_way;
   assign dcache_rtrn_o.inv.vld = rtrn_fifo_data.l15_inval_dcache_inval;
   assign dcache_rtrn_o.inv.all = rtrn_fifo_data.l15_inval_dcache_all_way;

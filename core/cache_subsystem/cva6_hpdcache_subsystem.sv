@@ -79,15 +79,13 @@ module cva6_hpdcache_subsystem
     output logic [               63:0]       hwpf_status_o,
     //  }}}
 
-    //  AXI port to upstream memory/peripherals
+    //  AXI/L1.5 port to upstream memory/peripherals
     //  {{{
     output noc_req_t  noc_req_o,
     input  noc_resp_t noc_resp_i
     //  }}}
 );
   //  }}}
-
-  `include "axi/typedef.svh"
 
   //  I$ instantiation
   //  {{{
@@ -97,7 +95,7 @@ module cva6_hpdcache_subsystem
   logic icache_miss_resp_valid;
   wt_cache_pkg::icache_rtrn_t icache_miss_resp;
 
-  localparam int ICACHE_RDTXID = 1 << (ariane_pkg::MEM_TID_WIDTH - 1);
+  localparam int ICACHE_RDTXID = 0;
 
   cva6_icache #(
       .CVA6Cfg(CVA6Cfg),
@@ -135,10 +133,17 @@ module cva6_hpdcache_subsystem
   //    NumPorts + 1: Hardware Memory Prefetcher (hwpf)
   localparam int HPDCACHE_NREQUESTERS = NumPorts + 2;
 
-  typedef logic [CVA6Cfg.AxiAddrWidth-1:0] hpdcache_mem_addr_t;
-  typedef logic [ariane_pkg::MEM_TID_WIDTH-1:0] hpdcache_mem_id_t;
-  typedef logic [CVA6Cfg.AxiDataWidth-1:0] hpdcache_mem_data_t;
-  typedef logic [CVA6Cfg.AxiDataWidth/8-1:0] hpdcache_mem_be_t;
+`ifdef PITON_ARIANE
+    typedef logic [riscv::PLEN-1:0]                       hpdcache_mem_addr_t;
+    typedef logic [ariane_pkg::MEM_TID_WIDTH-1:0]         hpdcache_mem_id_t;
+    typedef logic [ariane_pkg::DCACHE_LINE_WIDTH-1:0]     hpdcache_mem_data_t;
+    typedef logic [ariane_pkg::DCACHE_LINE_WIDTH/8-1:0]   hpdcache_mem_be_t;
+`else
+    typedef logic [CVA6Cfg.AxiAddrWidth-1:0]              hpdcache_mem_addr_t;
+    typedef logic [ariane_pkg::MEM_TID_WIDTH-1:0]         hpdcache_mem_id_t;
+    typedef logic [CVA6Cfg.AxiDataWidth-1:0]              hpdcache_mem_data_t;
+    typedef logic [CVA6Cfg.AxiDataWidth/8-1:0]            hpdcache_mem_be_t;
+`endif
   `HPDCACHE_TYPEDEF_MEM_REQ_T(hpdcache_mem_req_t, hpdcache_mem_addr_t, hpdcache_mem_id_t);
   `HPDCACHE_TYPEDEF_MEM_RESP_R_T(hpdcache_mem_resp_r_t, hpdcache_mem_id_t, hpdcache_mem_data_t);
   `HPDCACHE_TYPEDEF_MEM_REQ_W_T(hpdcache_mem_req_w_t, hpdcache_mem_data_t, hpdcache_mem_be_t);
@@ -203,6 +208,10 @@ module cva6_hpdcache_subsystem
   logic                                                         dcache_uc_write_resp_ready;
   logic                                                         dcache_uc_write_resp_valid;
   hpdcache_mem_resp_w_t                                         dcache_uc_write_resp;
+
+  logic                                                         dcache_inval_ready;
+  logic                                                         dcache_inval_valid;
+  hpdcache_pkg::hpdcache_req_t                                  dcache_inval;
 
   hwpf_stride_pkg::hwpf_stride_throttle_t [NrHwPrefetchers-1:0] hwpf_throttle_in;
   hwpf_stride_pkg::hwpf_stride_throttle_t [NrHwPrefetchers-1:0] hwpf_throttle_out;
@@ -376,7 +385,11 @@ module cva6_hpdcache_subsystem
   hpdcache #(
       .NREQUESTERS          (HPDCACHE_NREQUESTERS),
       .HPDcacheMemIdWidth   (ariane_pkg::MEM_TID_WIDTH),
+    `ifdef PITON_ARIANE
+      .HPDcacheMemDataWidth (ariane_pkg::DCACHE_LINE_WIDTH),
+    `else
       .HPDcacheMemDataWidth (CVA6Cfg.AxiDataWidth),
+    `endif
       .hpdcache_mem_req_t   (hpdcache_mem_req_t),
       .hpdcache_mem_req_w_t (hpdcache_mem_req_w_t),
       .hpdcache_mem_resp_r_t(hpdcache_mem_resp_r_t),
@@ -437,6 +450,10 @@ module cva6_hpdcache_subsystem
       .mem_resp_uc_write_valid_i(dcache_uc_write_resp_valid),
       .mem_resp_uc_write_i      (dcache_uc_write_resp),
 
+      .mem_inval_ready_o(dcache_inval_ready),
+      .mem_inval_valid_i(dcache_inval_valid),
+      .mem_inval_i      (dcache_inval),
+
       .evt_cache_write_miss_o(dcache_write_miss),
       .evt_cache_read_miss_o (dcache_read_miss),
       .evt_uncached_req_o    (  /* unused */),
@@ -452,10 +469,15 @@ module cva6_hpdcache_subsystem
       .wbuf_empty_o(wbuffer_empty_o),
 
       .cfg_enable_i                       (dcache_enable_i),
-      .cfg_wbuf_threshold_i               (4'd2),
       .cfg_wbuf_reset_timecnt_on_write_i  (1'b1),
       .cfg_wbuf_sequential_waw_i          (1'b0),
+`ifdef WRITE_BYTE_MASK
       .cfg_wbuf_inhibit_write_coalescing_i(1'b0),
+      .cfg_wbuf_threshold_i               (4'd2),
+`else
+      .cfg_wbuf_inhibit_write_coalescing_i(1'b1),
+      .cfg_wbuf_threshold_i               (4'd0),
+`endif
       .cfg_prefetch_updt_plru_i           (1'b1),
       .cfg_error_on_cacheable_amo_i       (1'b0),
       .cfg_rtab_single_entry_i            (1'b0)
@@ -470,8 +492,106 @@ module cva6_hpdcache_subsystem
 
   //  }}}
 
+///////////////////////////////////////////////////////
+// memory plumbing, either use 64bit AXI port or native
+// L15 cache interface (derived from OpenSPARC CCX).
+///////////////////////////////////////////////////////
+`ifdef PITON_ARIANE
+  localparam NUM_PORTS_ADAPTER = 6;
+  localparam NUM_PORTS_ADAPTER_WIDTH = $clog2(NUM_PORTS_ADAPTER);
+  // Adapter HPDC-L1.5 Request Ports type
+  // 0: Maximum priority 
+  // NUM_PORTS_ADAPTER - 1 : Less priority 
+  localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] ICACHE_PORT            = 0;
+  localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_PORT            = 1;
+  localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_WBUF_PORT       = 2;
+  localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_UNC_READ_PORT   = 3;
+  localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_UNC_WRITE_PORT  = 4;
+  localparam [NUM_PORTS_ADAPTER_WIDTH-1:0] DCACHE_AMO_PORT        = 5;
+  
+  typedef logic [NUM_PORTS_ADAPTER_WIDTH-1:0] req_portid_t;
+  //L15 adapter instantiation
+  //{{{
+  cva6_hpdcache_subsystem_l15_adapter #(
+    .CVA6Cfg                                         (CVA6Cfg),
+    .NumPorts                                        (NUM_PORTS_ADAPTER),
+    .IcachePort                                      (ICACHE_PORT),
+    .DcachePort                                      (DCACHE_PORT),
+    .DcacheWbufPort                                  (DCACHE_WBUF_PORT),
+    .DcacheUncReadPort                               (DCACHE_UNC_READ_PORT),
+    .DcacheUncWritePort                              (DCACHE_UNC_WRITE_PORT),
+    .DcacheAmoPort                                   (DCACHE_AMO_PORT),
+    .HPDcacheMemDataWidth                            (ariane_pkg::DCACHE_LINE_WIDTH),
+    .hpdcache_mem_req_t                              (hpdcache_mem_req_t),
+    .hpdcache_mem_req_w_t                            (hpdcache_mem_req_w_t),
+    .hpdcache_mem_resp_r_t                           (hpdcache_mem_resp_r_t),
+    .hpdcache_mem_resp_w_t                           (hpdcache_mem_resp_w_t),
+    .hpdcache_mem_id_t                               (hpdcache_mem_id_t),
+    .hpdcache_mem_addr_t                             (hpdcache_mem_addr_t),
+    .req_portid_t                                    (req_portid_t)
+  ) i_l15_adapter (
+    .clk_i,
+    .rst_ni,
+
+    .icache_miss_valid_i                             (icache_miss_valid),
+    .icache_miss_ready_o                             (icache_miss_ready),
+    .icache_miss_i                                   (icache_miss),
+
+    .icache_miss_resp_valid_o                        (icache_miss_resp_valid),
+    .icache_miss_resp_o                              (icache_miss_resp),
+
+    .dcache_miss_ready_o                             (dcache_miss_ready),
+    .dcache_miss_valid_i                             (dcache_miss_valid),
+    .dcache_miss_i                                   (dcache_miss),
+
+    .dcache_miss_resp_ready_i                        (dcache_miss_resp_ready),
+    .dcache_miss_resp_valid_o                        (dcache_miss_resp_valid),
+    .dcache_miss_resp_o                              (dcache_miss_resp),
+
+    .dcache_wbuf_ready_o                             (dcache_wbuf_ready),
+    .dcache_wbuf_valid_i                             (dcache_wbuf_valid),
+    .dcache_wbuf_i                                   (dcache_wbuf),
+
+    .dcache_wbuf_data_ready_o                        (dcache_wbuf_data_ready),
+    .dcache_wbuf_data_valid_i                        (dcache_wbuf_data_valid),
+    .dcache_wbuf_data_i                              (dcache_wbuf_data),
+
+    .dcache_wbuf_resp_ready_i                        (dcache_wbuf_resp_ready),
+    .dcache_wbuf_resp_valid_o                        (dcache_wbuf_resp_valid),
+    .dcache_wbuf_resp_o                              (dcache_wbuf_resp),
+
+    .dcache_uc_read_ready_o                          (dcache_uc_read_ready),
+    .dcache_uc_read_valid_i                          (dcache_uc_read_valid),
+    .dcache_uc_read_i                                (dcache_uc_read),
+
+    .dcache_uc_read_resp_ready_i                     (dcache_uc_read_resp_ready),
+    .dcache_uc_read_resp_valid_o                     (dcache_uc_read_resp_valid),
+    .dcache_uc_read_resp_o                           (dcache_uc_read_resp),
+
+    .dcache_uc_write_ready_o                         (dcache_uc_write_ready),
+    .dcache_uc_write_valid_i                         (dcache_uc_write_valid),
+    .dcache_uc_write_i                               (dcache_uc_write),
+
+    .dcache_uc_write_data_ready_o                    (dcache_uc_write_data_ready),
+    .dcache_uc_write_data_valid_i                    (dcache_uc_write_data_valid),
+    .dcache_uc_write_data_i                          (dcache_uc_write_data),
+
+    .dcache_uc_write_resp_ready_i                    (dcache_uc_write_resp_ready),
+    .dcache_uc_write_resp_valid_o                    (dcache_uc_write_resp_valid),
+    .dcache_uc_write_resp_o                          (dcache_uc_write_resp),
+
+    .dcache_inval_ready_i                            (dcache_inval_ready),
+    .dcache_inval_valid_o                            (dcache_inval_valid),
+    .dcache_inval_o                                  (dcache_inval),
+
+    .l15_req_o                                       (noc_req_o),
+    .l15_rtrn_i                                      (noc_resp_i)
+  );
+  //}}}
+`else
   //  AXI arbiter instantiation
   //  {{{
+  `include "axi/typedef.svh"
   typedef logic [CVA6Cfg.AxiAddrWidth-1:0] axi_addr_t;
   typedef logic [CVA6Cfg.AxiDataWidth-1:0] axi_data_t;
   typedef logic [CVA6Cfg.AxiDataWidth/8-1:0] axi_strb_t;
@@ -558,7 +678,7 @@ module cva6_hpdcache_subsystem
       .axi_resp_i(noc_resp_i)
   );
   //  }}}
-
+`endif
   //  Assertions
   //  {{{
   //  pragma translate_off

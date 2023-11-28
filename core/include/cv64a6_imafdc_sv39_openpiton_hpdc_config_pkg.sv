@@ -6,13 +6,6 @@
 // You may obtain a copy of the License at https://solderpad.org/licenses/
 //
 // Original Author: Jean-Roch COULON - Thales
-//
-// Copyright 2023 Commissariat a l'Energie Atomique et aux Energies
-//                Alternatives (CEA)
-//
-// Author: Cesar Fuguet - CEA
-// Date: August, 2023
-// Description: CVA6 configuration package using the HPDcache as cache subsystem
 
 
 package cva6_config_pkg;
@@ -25,13 +18,13 @@ package cva6_config_pkg;
   localparam CVA6ConfigF8En = 0;
   localparam CVA6ConfigFVecEn = 0;
 
-  localparam CVA6ConfigCvxifEn = 1;
+  localparam CVA6ConfigCvxifEn = 0;
   localparam CVA6ConfigCExtEn = 1;
-  localparam CVA6ConfigZcbExtEn = 1;
+  localparam CVA6ConfigZcbExtEn = 0;
   localparam CVA6ConfigAExtEn = 1;
-  localparam CVA6ConfigBExtEn = 1;
+  localparam CVA6ConfigBExtEn = 0;
   localparam CVA6ConfigVExtEn = 0;
-  localparam CVA6ConfigZiCondExtEn = 1;
+  localparam CVA6ConfigZiCondExtEn = 0;
 
   localparam CVA6ConfigAxiIdWidth = 4;
   localparam CVA6ConfigAxiAddrWidth = 64;
@@ -48,8 +41,8 @@ package cva6_config_pkg;
   localparam CVA6ConfigDcacheSetAssoc = 8;
   localparam CVA6ConfigDcacheLineWidth = 128;
 
-  localparam CVA6ConfigDcacheIdWidth = 3;
-  localparam CVA6ConfigMemTidWidth = CVA6ConfigAxiIdWidth;
+  localparam CVA6ConfigDcacheIdWidth = 1;
+  localparam CVA6ConfigMemTidWidth = 2;
 
   localparam CVA6ConfigWtDcacheWbufDepth = 8;
 
@@ -60,7 +53,7 @@ package cva6_config_pkg;
 
   localparam CVA6ConfigNrLoadPipeRegs = 1;
   localparam CVA6ConfigNrStorePipeRegs = 0;
-  localparam CVA6ConfigNrLoadBufEntries = 8;
+  localparam CVA6ConfigNrLoadBufEntries = 2;
 
   localparam CVA6ConfigInstrTlbEntries = 16;
   localparam CVA6ConfigDataTlbEntries = 16;
@@ -122,7 +115,7 @@ package cva6_config_pkg;
       BHTEntries: unsigned'(CVA6ConfigBHTEntries),
       DmBaseAddress: 64'h0,
       NrPMPEntries: unsigned'(CVA6ConfigNrPMPEntries),
-      NOCType: config_pkg::NOC_TYPE_AXI4_ATOP,
+      NOCType: config_pkg::NOC_TYPE_L15_BIG_ENDIAN,
       // idempotent region
       NrNonIdempotentRules:
       unsigned'(
@@ -144,8 +137,8 @@ package cva6_config_pkg;
       ),
       CachedRegionAddrBase: 1024'({64'h8000_0000}),
       CachedRegionLength: 1024'({64'h40000000}),
-      DebugEn: bit'(1),
-      MaxOutstandingStores: unsigned'(7)
+      MaxOutstandingStores: unsigned'(7),
+      DebugEn: bit'(1)
   };
 
 endpackage

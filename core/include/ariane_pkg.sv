@@ -327,7 +327,7 @@ package ariane_pkg;
   localparam int unsigned DCACHE_USER_LINE_WIDTH = (AXI_USER_WIDTH == 1) ? 4 : 128;  // in bit
   localparam int unsigned DCACHE_USER_WIDTH = DATA_USER_WIDTH;
 
-  localparam int unsigned MEM_TID_WIDTH = `L15_THREADID_WIDTH;
+  localparam int unsigned MEM_TID_WIDTH = (`L15_THREADID_WIDTH > 2) ? (`L15_THREADID_WIDTH) : 3; //Minimum for the HPDC with single channel to MM, OP can only support `L15_THREADID_WIDTH;
 `else
   // I$
   localparam int unsigned CONFIG_L1I_SIZE = cva6_config_pkg::CVA6ConfigIcacheByteSize;  // in byte
