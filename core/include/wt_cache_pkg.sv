@@ -35,16 +35,17 @@ package wt_cache_pkg;
 `endif
 
   localparam L15_SET_ASSOC = `CONFIG_L15_ASSOCIATIVITY;
+  localparam L15_TID_WIDTH = `L15_THREADID_WIDTH;
   localparam L15_TLB_CSM_WIDTH = `TLB_CSM_WIDTH;
   localparam L15_PADDR_WIDTH = `L15_PADDR_WIDTH;
   localparam L15_BYTE_MASK_WIDHT = `L15_BYTE_MASK_WIDHT;
 `else
   localparam L15_SET_ASSOC           = ariane_pkg::DCACHE_SET_ASSOC;// align with dcache for compatibility with the standard Ariane setup
+  localparam L15_TID_WIDTH = ariane_pkg::MEM_TID_WIDTH;
   localparam L15_TLB_CSM_WIDTH = 33;
   localparam L15_PADDR_WIDTH = 40;
   localparam L15_BYTE_MASK_WIDHT = 8;
 `endif
-  localparam L15_TID_WIDTH = ariane_pkg::MEM_TID_WIDTH;
   localparam L15_WAY_WIDTH = $clog2(L15_SET_ASSOC);
   localparam L1I_WAY_WIDTH = $clog2(ariane_pkg::ICACHE_SET_ASSOC);
   localparam L1D_WAY_WIDTH = $clog2(ariane_pkg::DCACHE_SET_ASSOC);
