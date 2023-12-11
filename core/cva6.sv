@@ -214,7 +214,9 @@ module cva6
     CVA6Cfg.CachedRegionAddrBase,
     CVA6Cfg.CachedRegionLength,
     CVA6Cfg.MaxOutstandingStores,
-    CVA6Cfg.DebugEn
+    CVA6Cfg.DebugEn,
+    CVA6Cfg.WriteCoalescingEn,
+    CVA6Cfg.WriteCoalescingTh
   };
 
 

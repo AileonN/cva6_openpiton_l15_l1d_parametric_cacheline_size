@@ -112,6 +112,9 @@ package config_pkg;
     /// Maximum number of outstanding stores.
     int unsigned                 MaxOutstandingStores;
     bit                          DebugEn;
+    /// Enable HPDC Write Coalescing feature
+    bit                          WriteCoalescingEn;
+    int unsigned                 WriteCoalescingTh;
   } cva6_cfg_t;
 
 

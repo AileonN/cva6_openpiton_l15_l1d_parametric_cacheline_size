@@ -435,6 +435,7 @@ module cva6_hpdcache_subsystem_l15_adapter import ariane_pkg::*;import wt_cache_
        .DcacheUncReadPort        (DcacheUncReadPort),
        .DcacheUncWritePort       (DcacheUncWritePort),
        .DcacheAmoPort            (DcacheAmoPort),
+       .WriteByteMaskEnabled     (CVA6Cfg.WriteCoalescingEn),
        .SwapEndianess            (CVA6Cfg.NOCType == config_pkg::NOC_TYPE_L15_BIG_ENDIAN),
        .hpdcache_mem_req_t       (hpdcache_mem_req_t),
        .hpdcache_mem_req_w_t     (hpdcache_mem_req_w_t),

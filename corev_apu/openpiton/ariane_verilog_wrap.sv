@@ -26,6 +26,8 @@ module ariane_verilog_wrap
   parameter int unsigned               NrWbPorts             = 0,
   parameter int unsigned               MaxOutstandingStores  = 7,
   parameter bit                        DebugEn               = 1,
+  parameter bit                        WriteCoalescingEn     = 0,
+  parameter int unsigned               WriteCoalescingTh     = 0,
   parameter logic [63:0]               HaltAddress           = 64'h800,
   parameter logic [63:0]               ExceptionAddress      = 64'h808,
   parameter bit                        EnableAccelerator     = 0,
@@ -246,7 +248,9 @@ module ariane_verilog_wrap
     CachedRegionAddrBase:   CachedRegionAddrBase,
     CachedRegionLength:     CachedRegionLength,
     MaxOutstandingStores:   MaxOutstandingStores,
-    DebugEn:                DebugEn
+    DebugEn:                DebugEn,
+    WriteCoalescingEn:      WriteCoalescingEn,
+    WriteCoalescingTh:      WriteCoalescingTh
   };
 
   ariane #(

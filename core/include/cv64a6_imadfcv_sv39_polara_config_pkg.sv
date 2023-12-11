@@ -137,7 +137,10 @@ package cva6_config_pkg;
       CachedRegionAddrBase: 1024'({64'h8000_0000}),
       CachedRegionLength: 1024'({64'h40000000}),
       MaxOutstandingStores: unsigned'(7),
-      DebugEn: bit'(1)
+      DebugEn: bit'(1),
+      // HPDC Write coalescing
+      WriteCoalescingEn: bit'(0),
+      WriteCoalescingTh: unsigned'(0)
   };
 
 endpackage
