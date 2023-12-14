@@ -117,7 +117,8 @@ module wt_l15_adapter
   // data mux
   assign l15_req_o.l15_nc = (arb_idx) ? dcache_data.nc : icache_data.nc;
   // icache fills are either cachelines or 4byte fills, depending on whether they go to the Piton I/O space or not.
-  assign l15_req_o.l15_size = (arb_idx) ? dcache_data.size : (icache_data.nc) ? 3'b010 : 3'b111;
+  assign l15_req_o.l15_size = (arb_idx) ? (dcache_data.size == 3'b111) ? 3'b101 : dcache_data.size + 1 : 
+                                          (icache_data.nc) ? 3'b011 : 3'b110;
   assign l15_req_o.l15_threadid = (arb_idx) ? dcache_data.tid : icache_data.tid;
   assign l15_req_o.l15_prefetch = '0;  // unused in openpiton
   assign l15_req_o.l15_invalidate_cacheline = '0; // unused by Ariane as L1 has no ECC at the moment

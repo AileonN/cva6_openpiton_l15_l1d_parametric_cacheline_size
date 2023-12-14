@@ -98,7 +98,7 @@ package hpdcache_params_pkg;
   //  HPDcache MSHR whether uses FFs or SRAM
   localparam bit PARAM_MSHR_USE_REGBANK = (PARAM_MSHR_SETS * PARAM_MSHR_WAYS) <= 16;
   //  }}}
-
+  localparam bit PARAM_REFILL_CORE_RSP_FEEDTHROUGH = 1'b1;
   //  Definition of constants and types for the Write Buffer (WBUF)
   //  {{{
   //  HPDcache Write-Buffer number of entries in the directory
@@ -113,7 +113,7 @@ package hpdcache_params_pkg;
   //  HPDcache Write-Buffer threshold counter width (in bits)
   localparam int unsigned PARAM_WBUF_TIMECNT_WIDTH = 3;
   //  }}}
-
+  localparam bit PARAM_WBUF_SEND_FEEDTHROUGH = 1'b1;
   //  Definition of constants and types for the Replay Table (RTAB)
   //  {{{
   localparam int PARAM_RTAB_ENTRIES = 4;
