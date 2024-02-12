@@ -395,7 +395,7 @@ module cva6_hpdcache_subsystem import ariane_pkg::*; import wt_cache_pkg::*; imp
     .hpdcache_req_abort_o       (dcache_req_abort[4]),
     .hpdcache_req_tag_o         (dcache_req_tag[4]),
     .hpdcache_req_pma_o         (dcache_req_pma[4]),
-    .hpdcache_rsp_valid_i       (dcache_rsp_valid[41]),
+    .hpdcache_rsp_valid_i       (dcache_rsp_valid[4]),
     .hpdcache_rsp_i             (dcache_rsp[4])
   );
 
