@@ -449,11 +449,11 @@ module cva6_hpdcache_subsystem
       .mem_resp_uc_write_ready_o(dcache_uc_write_resp_ready),
       .mem_resp_uc_write_valid_i(dcache_uc_write_resp_valid),
       .mem_resp_uc_write_i      (dcache_uc_write_resp),
-
+`ifdef HPDCACHE_OPENPITON
       .mem_inval_ready_o(dcache_inval_ready),
       .mem_inval_valid_i(dcache_inval_valid),
       .mem_inval_i      (dcache_inval),
-
+`endif
       .evt_cache_write_miss_o(dcache_write_miss),
       .evt_cache_read_miss_o (dcache_read_miss),
       .evt_uncached_req_o    (  /* unused */),
